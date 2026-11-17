@@ -33,6 +33,38 @@ synthetic negative peptides per scenario. These synthetic negatives are not
 experimentally validated nonbinders. All published numeric results in the source
 repository are properties of that benchmark, not validated binding probabilities.
 
+## Results from the full SQLite analysis
+
+The full pipeline was executed against the public TCR–peptide inputs and the resulting SQL reports and figures are committed in this repository. The database contains **25 TCR systems**, **5,050 candidate records** (2,525 in each negative-sampling scenario), **531 native contact records** for the selected systems, and **380 interaction-potential entries**. All **5,050 candidates** received a reconstructed SQL score.
+
+### Scoring parity and data integrity
+
+- **2,525 original-scenario reference scores** were compared with reconstructed SQL scores. The [scoring report](results/reports/scoring_02.csv) gives **maximum and mean absolute errors of 0.0** at the stored report precision.
+- There were **no discrepancies above the configured 1e-7 tolerance** in [the discrepancy report](results/reports/scoring_03.csv).
+- The [missing-contact/potential report](results/reports/data_quality_02.csv) and [unmatched-candidate report](results/reports/data_quality_03.csv) contain **zero failed rows**.
+- **No Python reference scores were imported for the composition-matched scenario**. SQL ranks and scores were computed for those candidates, but SQL/Python numerical parity has not been independently established for that scenario.
+
+![Parity between SQL and Python TCRen scores](figures/sql_python_parity.png)
+
+*Figure 1. SQL-reconstructed TCRen scores versus Python reference scores for the original candidate set (n = 2,525). The plotted agreement checks numerical implementation, not biological predictive validity.*
+
+### Ranking sensitivity to the negative set
+
+| Full-dataset TCRen baseline metric | Original negatives | Composition-matched negatives |
+| --- | ---: | ---: |
+| TCR systems | 25 | 25 |
+| Mean Reciprocal Rank (MRR) | **0.33491** | **0.26769** |
+| Top-1 | 0.16 | 0.12 |
+| Top-5 | 0.48 | 0.44 |
+
+Values are calculated from all 25 TCR groups in the [committed negative-control summary](results/reports/negative_controls_02.csv), using **average ranks for ties**. They are **full-dataset TCRen baseline summaries**, not means across repeated held-out grouped splits and not performance estimates for the ML classifiers.
+
+![Cognate peptide rank sensitivity across negative sets](figures/rank_sensitivity.png)
+
+*Figure 2. Within-TCR cognate-peptide ranks when candidate sets change from uniformly sampled synthetic negatives to composition-matched shuffled negatives. Higher ranks are worse.*
+
+The cognate sequences and their TCRen scores do not change between these scenarios; their **rank changes because the competing negative candidates change**. Composition matching lowers the aggregate baseline MRR in this dataset (0.33491 to 0.26769). This comparison demonstrates **benchmark sensitivity**; it does not show that the underlying potential has changed or establish biological recognition accuracy.
+
 ## Database model
 
 | Table/view | Granularity | Key fields |
@@ -145,42 +177,17 @@ SQLite database: delete `results/tcr_analysis.sqlite` deliberately before
 rerunning the import. Output CSV reports appear under `results/reports/` and
 figures under `figures/`.
 
-### Independently checked upstream benchmark
+### Independent upstream cross-check
 
-An independent contact-loop calculation using the public GitHub inputs (before executing this project's full SQLite workflow) verified the following reference values on 17 November 2026:
+Before the SQLite run, an independent Python contact-loop calculation on the public source inputs gave a maximum absolute difference of approximately **2.66 × 10⁻¹⁵** against the original Python scores and full-dataset MRR values of **0.3349** (original negatives) and **0.2677** (composition-matched negatives). The now-committed SQLite reports reproduce these rounded aggregate MRR values. The difference between 2.66 × 10⁻¹⁵ in that independent check and 0.0 in the stored SQL report reflects floating-point evaluation/reporting details, not a meaningful physical discrepancy.
 
-| Upstream check | Observed value |
-| --- | ---: |
-| Candidate peptides per scenario | 2,525 |
-| TCR systems per scenario | 25 |
-| Original-score maximum absolute difference from public Python scores | 2.66 × 10⁻¹⁵ |
-| TCRen full-dataset MRR, original negative set | 0.3349 |
-| TCRen full-dataset MRR, composition-matched set | 0.2677 |
+### Reproduction and result provenance
 
-These are **independent checks of the original public inputs**, not claims that this repository's SQLite pipeline has already been run on the full dataset. They are also full-dataset baseline summaries; the source README reports **averages over repeated held-out grouped splits**, which need not equal these numbers.
+The committed `results/reports/` tables and `figures/` files were generated from the full public inputs using the documented commands. The source CSVs and generated SQLite database are deliberately not committed, so other users can fetch the inputs and reproduce the reports. The [test suite](tests/test_sql_validation.py) separately validates the implementation on small controlled fixtures; its success alone is not a substitute for the full-data reports.
 
-### Expected sanity checks
+## Figures
 
-- The public benchmark's 25 systems and 101 candidates per system should
-  yield 2,525 candidate rows **per scenario** if the source CSVs are unchanged.
-- Every `(scenario,pdb_id)` group should contain **exactly one** positive peptide.
-- SQL reconstruction should produce one score per candidate, with all contact
-  lookup records accounted for.
-- With source reference scores provided, SQL and Python should agree within an
-  appropriate floating-point tolerance. The default discrepancy report shows
-  absolute differences larger than `1e-7`; precision of the inputs matters.
-
-**Results policy:** This repository template has a tested small synthetic
-fixture, but the full public CSV analysis must be run locally. Do not treat
-these expected counts as newly measured results, and do not claim parity or
-new rank summaries until they are verified from the real data.
-
-## Figures (generated only from the real imported data)
-
-`src/plot_results.py` can produce:
-
-- `rank_sensitivity.png` — within-TCR cognate ranks for original versus matched negatives
-- `sql_python_parity.png` — SQL versus Python scores (requires reference CSV)
+The two full-data figures are embedded in the Results section above and stored in `figures/`. Run `python -m src.plot_results` after building the database to regenerate them.
 
 ## Tests and automation
 
