@@ -1,0 +1,2 @@
+scenario,n_reference_scores,max_abs_error,mean_abs_error,n_over_1e-7,comparison_method
+composition_matched,2525,1.7763568394002505e-15,1.8508915522353887e-16,0,independent_CSV_to_committed_SQL_export_by_validated_candidate_order
