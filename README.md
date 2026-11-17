@@ -33,37 +33,33 @@ synthetic negative peptides per scenario. These synthetic negatives are not
 experimentally validated nonbinders. All published numeric results in the source
 repository are properties of that benchmark, not validated binding probabilities.
 
-## Results from the full SQLite analysis
+## Results
 
-The full pipeline was executed against the public TCR–peptide inputs and the resulting SQL reports and figures are committed in this repository. The database contains **25 TCR systems**, **5,050 candidate records** (2,525 in each negative-sampling scenario), **531 native contact records** for the selected systems, and **380 interaction-potential entries**. All **5,050 candidates** received a reconstructed SQL score.
+The SQLite analysis covers 25 TCR systems and 5,050 candidate peptides (2,525 per negative-sampling strategy). It reconstructs TCRen scores from 531 contact records and 380 amino-acid interaction potentials. All candidates received a score, with no unmatched contacts or candidates ([data-quality reports](results/reports/)).
 
-### Scoring parity and data integrity
+### SQL–Python agreement
 
-- **2,525 original-scenario reference scores** were compared with reconstructed SQL scores. The [scoring report](results/reports/scoring_02.csv) gives **maximum and mean absolute errors of 0.0** at the stored report precision.
-- There were **no discrepancies above the configured 1e-7 tolerance** in [the discrepancy report](results/reports/scoring_03.csv).
-- The [missing-contact/potential report](results/reports/data_quality_02.csv) and [unmatched-candidate report](results/reports/data_quality_03.csv) contain **zero failed rows**.
-- For the **2,525 composition-matched candidates**, an **independent comparison** of the public Python reference CSV and the committed SQL scoring export found a **maximum absolute error of 1.78 × 10⁻¹⁵**, a mean absolute error of **1.85 × 10⁻¹⁶**, and **zero differences exceeding 1e-7**. The check matched records using the importer's validated candidate-ID/input-row order and verified PDB identifiers; see [independent matched-reference report](results/reports/matched_reference_independent_check.csv). This is **not** a report from the original SQLite build, which did not import matched Python references (hence the zero reference count in `scoring_02.csv`). A fresh rebuild with `--reference-matched` will incorporate both scenarios into the native SQL parity report.
+The native SQLite parity report compares 2,525 original-set scores with Python and finds a maximum absolute error of 0.0 at the stored report precision ([report](results/reports/scoring_02.csv)). A subsequent independent check of the 2,525 composition-matched scores found a maximum error of 1.78 × 10⁻¹⁵, with no deviations exceeding 10⁻⁷ ([report](results/reports/matched_reference_independent_check.csv)). The matched reference was not included in the original database build; rerunning with `--reference-matched` will incorporate it into the native report.
 
-![Parity between SQL and Python TCRen scores](figures/sql_python_parity.png)
+![SQL–Python scoring agreement for the original negative set](figures/sql_python_parity.png)
 
-*Figure 1. SQL-reconstructed TCRen scores versus Python reference scores for the original candidate set (n = 2,525). An additional independent cross-check of all 2,525 composition-matched scores is provided as a CSV report; the plotted figure itself has not yet been regenerated to include those matched reference values. Agreement checks numerical implementation, not biological predictive validity.*
+*SQL–Python score parity for the original candidate set; the matched-set check is reported separately.*
 
-### Ranking sensitivity to the negative set
+### Effect of negative-sampling design
 
-| Full-dataset TCRen baseline metric | Original negatives | Composition-matched negatives |
+| Metric, full 25-TCR TCRen baseline | Original negatives | Composition-matched negatives |
 | --- | ---: | ---: |
-| TCR systems | 25 | 25 |
-| Mean Reciprocal Rank (MRR) | **0.33491** | **0.26769** |
-| Top-1 | 0.16 | 0.12 |
-| Top-5 | 0.48 | 0.44 |
+| Mean Reciprocal Rank | 0.33491 | 0.26769 |
+| Top-1 | 16% | 12% |
+| Top-5 | 48% | 44% |
 
-Values are calculated from all 25 TCR groups in the [committed negative-control summary](results/reports/negative_controls_02.csv), using **average ranks for ties**. They are **full-dataset TCRen baseline summaries**, not means across repeated held-out grouped splits and not performance estimates for the ML classifiers.
+[Reproducible SQL summary](results/reports/negative_controls_02.csv) · [Per-TCR ranks](results/reports/ranking_01.csv)
 
-![Cognate peptide rank sensitivity across negative sets](figures/rank_sensitivity.png)
+![Rank sensitivity to negative-sampling strategy](figures/rank_sensitivity.png)
 
-*Figure 2. Within-TCR cognate-peptide ranks when candidate sets change from uniformly sampled synthetic negatives to composition-matched shuffled negatives. Higher ranks are worse.*
+*The cognate peptide and its TCRen score remain fixed; its rank changes with the competing candidate peptides.*
 
-The cognate sequences and their TCRen scores do not change between these scenarios; their **rank changes because the competing negative candidates change**. Composition matching lowers the aggregate baseline MRR in this dataset (0.33491 to 0.26769). This comparison demonstrates **benchmark sensitivity**; it does not show that the underlying potential has changed or establish biological recognition accuracy.
+These are full-dataset baseline results, not the average over held-out grouped splits used in the companion ML project. Synthetic negatives are not experimentally confirmed nonbinders, so ranking differences demonstrate sensitivity to the benchmark construction, not biological binding accuracy.
 
 ## Database model
 
@@ -178,17 +174,9 @@ SQLite database: delete `results/tcr_analysis.sqlite` deliberately before
 rerunning the import. Output CSV reports appear under `results/reports/` and
 figures under `figures/`.
 
-### Independent upstream cross-check
+### Reproducibility
 
-Before the SQLite run, an independent Python contact-loop calculation on the public source inputs gave a maximum absolute difference of approximately **2.66 × 10⁻¹⁵** against the original Python scores and full-dataset MRR values of **0.3349** (original negatives) and **0.2677** (composition-matched negatives). The now-committed SQLite reports reproduce these rounded aggregate MRR values. The difference between 2.66 × 10⁻¹⁵ in that independent check and 0.0 in the stored SQL report reflects floating-point evaluation/reporting details, not a meaningful physical discrepancy.
-
-### Reproduction and result provenance
-
-The original committed `results/reports/` tables and `figures/` files were generated from the full public inputs **with original-scenario reference scores only**. A separate matched-scenario parity report was subsequently computed by comparing the upstream public CSV against the SQL score export; it is explicitly labelled as an independent cross-check. The documented commands now fetch and import **both** reference files so future full-data runs can regenerate native parity reports for both scenarios. The source CSVs and generated SQLite database are deliberately not committed, so other users can fetch the inputs and reproduce the reports. The [test suite](tests/test_sql_validation.py) separately validates the implementation on small controlled fixtures; its success alone is not a substitute for the full-data reports.
-
-## Figures
-
-The two full-data figures are embedded in the Results section above and stored in `figures/`. Run `python -m src.plot_results` after building the database to regenerate them.
+The committed results were generated with the public source inputs; the raw CSVs and local SQLite database are not redistributed. The original SQL report and published parity figure use original-scenario reference scores; the composition-matched parity CSV is a separate independent check. Run the commands above to rebuild the database with both reference sets and regenerate reports and figures. Automated tests use small controlled fixtures.
 
 ## Tests and automation
 
