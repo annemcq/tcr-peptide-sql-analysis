@@ -42,11 +42,11 @@ The full pipeline was executed against the public TCR–peptide inputs and the r
 - **2,525 original-scenario reference scores** were compared with reconstructed SQL scores. The [scoring report](results/reports/scoring_02.csv) gives **maximum and mean absolute errors of 0.0** at the stored report precision.
 - There were **no discrepancies above the configured 1e-7 tolerance** in [the discrepancy report](results/reports/scoring_03.csv).
 - The [missing-contact/potential report](results/reports/data_quality_02.csv) and [unmatched-candidate report](results/reports/data_quality_03.csv) contain **zero failed rows**.
-- **No Python reference scores were imported for the composition-matched scenario**. SQL ranks and scores were computed for those candidates, but SQL/Python numerical parity has not been independently established for that scenario.
+- For the **2,525 composition-matched candidates**, an **independent comparison** of the public Python reference CSV and the committed SQL scoring export found a **maximum absolute error of 1.78 × 10⁻¹⁵**, a mean absolute error of **1.85 × 10⁻¹⁶**, and **zero differences exceeding 1e-7**. The check matched records using the importer's validated candidate-ID/input-row order and verified PDB identifiers; see [independent matched-reference report](results/reports/matched_reference_independent_check.csv). This is **not** a report from the original SQLite build, which did not import matched Python references (hence the zero reference count in `scoring_02.csv`). A fresh rebuild with `--reference-matched` will incorporate both scenarios into the native SQL parity report.
 
 ![Parity between SQL and Python TCRen scores](figures/sql_python_parity.png)
 
-*Figure 1. SQL-reconstructed TCRen scores versus Python reference scores for the original candidate set (n = 2,525). The plotted agreement checks numerical implementation, not biological predictive validity.*
+*Figure 1. SQL-reconstructed TCRen scores versus Python reference scores for the original candidate set (n = 2,525). An additional independent cross-check of all 2,525 composition-matched scores is provided as a CSV report; the plotted figure itself has not yet been regenerated to include those matched reference values. Agreement checks numerical implementation, not biological predictive validity.*
 
 ### Ranking sensitivity to the negative set
 
@@ -139,7 +139,7 @@ python -m pip install -r requirements.txt
 python -m pytest -q
 ```
 
-Option A: fetch the five public CSV inputs at runtime (the source data are **not** redistributed here), then build the database. For strict reproducibility, pass a source commit SHA with `--ref` rather than relying on the moving `main` branch:
+Option A: fetch the six public CSV inputs at runtime (the source data are **not** redistributed here), then build the database. For strict reproducibility, pass a source commit SHA with `--ref` rather than relying on the moving `main` branch:
 
 ```bash
 python -m src.fetch_public_data
@@ -148,7 +148,8 @@ python -m src.build_database \
   --matched data/raw/matched.csv \
   --contacts data/raw/contacts.csv \
   --potential data/raw/potential.csv \
-  --reference-original data/raw/reference_original.csv
+  --reference-original data/raw/reference_original.csv \
+  --reference-matched data/raw/reference_matched.csv
 python -m src.run_analysis
 python -m pip install numpy matplotlib
 python -m src.plot_results
@@ -183,7 +184,7 @@ Before the SQLite run, an independent Python contact-loop calculation on the pub
 
 ### Reproduction and result provenance
 
-The committed `results/reports/` tables and `figures/` files were generated from the full public inputs using the documented commands. The source CSVs and generated SQLite database are deliberately not committed, so other users can fetch the inputs and reproduce the reports. The [test suite](tests/test_sql_validation.py) separately validates the implementation on small controlled fixtures; its success alone is not a substitute for the full-data reports.
+The original committed `results/reports/` tables and `figures/` files were generated from the full public inputs **with original-scenario reference scores only**. A separate matched-scenario parity report was subsequently computed by comparing the upstream public CSV against the SQL score export; it is explicitly labelled as an independent cross-check. The documented commands now fetch and import **both** reference files so future full-data runs can regenerate native parity reports for both scenarios. The source CSVs and generated SQLite database are deliberately not committed, so other users can fetch the inputs and reproduce the reports. The [test suite](tests/test_sql_validation.py) separately validates the implementation on small controlled fixtures; its success alone is not a substitute for the full-data reports.
 
 ## Figures
 
