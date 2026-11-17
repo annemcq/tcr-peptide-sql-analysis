@@ -59,7 +59,7 @@ The rebuilt SQLite database now contains Python reference scores for **both** ne
 
 *The cognate peptide and its TCRen score remain fixed; its rank changes with the competing candidate peptides.*
 
-These are full-dataset baseline results, not the average over held-out grouped splits used in the companion ML project. Synthetic negatives are not experimentally confirmed nonbinders, so ranking differences demonstrate sensitivity to the benchmark construction, not biological binding accuracy.
+These are full-dataset baseline results, not the average over held-out grouped splits used in the companion ML project. The composition-matched negatives are one random draw. Rebuilding them with ten other seeds (`RANDOM_SEED` 1000 to 10000 in `build_matched_dataset.py` of the companion repository) gave a TCRen baseline MRR between 0.25 and 0.37 (mean 0.31), so the gap between 0.335 and 0.268 is within the variation between draws and should not be read as an effect of composition matching on TCRen. Individual ranks do change with the competing candidates. Synthetic negatives are not experimentally confirmed nonbinders, so none of this measures biological binding accuracy.
 
 ## Database model
 
@@ -186,12 +186,11 @@ errors, duplicate candidates and report export. CI runs pytest on every push
 and pull request. Tests demonstrate software correctness on fixtures; they do
 not substitute for quantitative validation against the full public dataset.
 
-
 ## Takeaways
 
 - Joins make the scoring auditable. Each TCRen score is a sum over contact records joined to a residue lookup and a potential table, and left joins against the same tables show which records an inner join would silently drop. In this dataset there were none.
 - RANK() is not pandas' average rank. For tied scores it gives every row the lowest rank in the tie, so reproducing rank(method='average') needs a correction built from COUNT() OVER. The tests check this on a small tied example.
-- The benchmark design changes the answer. The cognate peptide and its score are identical in both scenarios, but the TCRen baseline MRR drops from 0.335 to 0.268 when the negatives are composition-matched, so part of the apparent performance comes from the competing negatives.
+- Negative sets change ranks, but the aggregate gap is within noise. The cognate peptide and its score are identical in both scenarios, so every per-TCR rank change comes from the competing negatives. The committed matched draw gives a lower TCRen baseline MRR (0.268 vs 0.335), but ten other random draws gave 0.25 to 0.37, so that gap is not distinguishable from sampling variation.
 - Parity checks the implementation, not the biology. The SQL scores match the Python reference to floating-point precision, which says nothing about whether TCRen predicts real recognition.
 
 ## Limitations and scientific interpretation
