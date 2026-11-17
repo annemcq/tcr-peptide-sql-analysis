@@ -39,11 +39,11 @@ The SQLite analysis covers 25 TCR systems and 5,050 candidate peptides (2,525 pe
 
 ### SQL–Python agreement
 
-The native SQLite parity report compares 2,525 original-set scores with Python and finds a maximum absolute error of 0.0 at the stored report precision ([report](results/reports/scoring_02.csv)). A subsequent independent check of the 2,525 composition-matched scores found a maximum error of 1.78 × 10⁻¹⁵, with no deviations exceeding 10⁻⁷ ([report](results/reports/matched_reference_independent_check.csv)). The matched reference was not included in the original database build; rerunning with `--reference-matched` will incorporate it into the native report.
+The rebuilt SQLite database now contains Python reference scores for **both** negative-sampling scenarios. The [native SQL–Python parity report](results/reports/scoring_02.csv) compares **2,525 scores per scenario (5,050 total)** and reports maximum and mean absolute errors of **0.0** at the stored numeric precision. The [discrepancy report](results/reports/scoring_03.csv) contains no scores exceeding the 1e-7 tolerance. An earlier independent check of the matched scenario found maximum error 1.78 × 10⁻¹⁵ ([archived cross-check](results/reports/matched_reference_independent_check.csv)).
 
-![SQL–Python scoring agreement for the original negative set](figures/sql_python_parity.png)
+![SQL–Python scoring agreement for both negative-sampling scenarios](figures/sql_python_parity.png)
 
-*SQL–Python score parity for the original candidate set; the matched-set check is reported separately.*
+*SQL–Python score parity across all 5,050 candidates in both negative-sampling scenarios; the figure was regenerated after importing both reference datasets.*
 
 ### Effect of negative-sampling design
 
@@ -176,7 +176,7 @@ figures under `figures/`.
 
 ### Reproducibility
 
-The committed results were generated with the public source inputs; the raw CSVs and local SQLite database are not redistributed. The original SQL report and published parity figure use original-scenario reference scores; the composition-matched parity CSV is a separate independent check. Run the commands above to rebuild the database with both reference sets and regenerate reports and figures. Automated tests use small controlled fixtures.
+The committed reports and figures were generated from public source inputs. The final database run imported Python reference scores for both scenarios, and the parity figure and native parity CSV now reflect all 5,050 candidates. Raw CSVs and the generated SQLite database are not redistributed. Run the commands above to recreate them locally; automated tests separately use small controlled fixtures.
 
 ## Tests and automation
 
