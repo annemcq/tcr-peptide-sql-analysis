@@ -186,6 +186,14 @@ errors, duplicate candidates and report export. CI runs pytest on every push
 and pull request. Tests demonstrate software correctness on fixtures; they do
 not substitute for quantitative validation against the full public dataset.
 
+
+## Takeaways
+
+- Joins make the scoring auditable. Each TCRen score is a sum over contact records joined to a residue lookup and a potential table, and left joins against the same tables show which records an inner join would silently drop. In this dataset there were none.
+- RANK() is not pandas' average rank. For tied scores it gives every row the lowest rank in the tie, so reproducing rank(method='average') needs a correction built from COUNT() OVER. The tests check this on a small tied example.
+- The benchmark design changes the answer. The cognate peptide and its score are identical in both scenarios, but the TCRen baseline MRR drops from 0.335 to 0.268 when the negatives are composition-matched, so part of the apparent performance comes from the competing negatives.
+- Parity checks the implementation, not the biology. The SQL scores match the Python reference to floating-point precision, which says nothing about whether TCRen predicts real recognition.
+
 ## Limitations and scientific interpretation
 
 - The contact map for the cognate complex is reused to score decoy peptides.
